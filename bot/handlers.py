@@ -230,7 +230,6 @@ async def report_skip_photos(message: Message, state: FSMContext):
         for photo_id in photos:
             media_group.append(InputMediaPhoto(media=photo_id))
         await message.answer_media_group(media=media_group)
-                     )  # Додаємо у список робіт
 
     # Формуємо перше повідомлення (без робіт, але з фото)
     report_text_1 = (

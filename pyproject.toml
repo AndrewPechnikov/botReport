@@ -1,12 +1,14 @@
 [project]
-name = "python-template"
+name = "bot-report"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = [{name = "Andrew Pechnikov", email = "andrij.pechnikov@gmail.com"}]
 requires-python = ">=3.11"
 dependencies = [
     "aiogram>=3.18.0",
     "flask>=3.1.0",
     "pandas>=2.2.3",
     "requests>=2.32.3",
+    "openpyxl (>=3.1.5,<4.0.0)",
+     
 ]

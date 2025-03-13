@@ -48,7 +48,11 @@ stationList = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="Станція 1")], 
     [KeyboardButton(text="Станція 2")],
     [KeyboardButton(text="Станція 3")]
-], resize_keyboard=True)ardButton(text='1')],
+], resize_keyboard=True)
+
+# Додаткова клавіатура (якщо потрібна)
+additional_keyboard = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text='1')],
     [KeyboardButton(text='2')]
 ], resize_keyboard=True)
 

@@ -1,7 +1,11 @@
 import asyncio
 import os
+from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from background import keep_alive
+
+# Завантаження змінних із .env файлу
+load_dotenv()
 
 from handlers import router
 

@@ -4,10 +4,6 @@ from threading import Thread
 import time
 import requests
 import os
-from dotenv import load_dotenv
-
-# Завантаження змінних із .env файлу
-load_dotenv()
 
 app = Flask('')
 

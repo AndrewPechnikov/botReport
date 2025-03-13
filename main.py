@@ -1,4 +1,5 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher
 from background import keep_alive
 
@@ -6,7 +7,12 @@ from handlers import router
 
 
 async def main():
-    bot = Bot(token='7597075440:AAFGbuJH5W8-t02xRsdWWbLxhwLS5Kh0grU')
+    bot_token = os.environ.get('BOT_TOKEN')
+    if not bot_token:
+        print('Помилка: BOT_TOKEN не налаштований у змінних середовища')
+        return
+        
+    bot = Bot(token=bot_token)
     dp = Dispatcher()
     dp.include_router(router)
     await dp.start_polling(bot)

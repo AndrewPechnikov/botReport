@@ -183,7 +183,53 @@ async def report_skip_photos(message: Message, state: FSMContext):
     work_done = data.get("work_done", [])
     distance = int(data.get("distance", 0))  # Отримуємо кілометраж
     travel_cost = distance * 8  # Розраховуємо вартість виїзду
-    work_done.append(f"🚗 Виїзд на {distance} км - {travel_cost} грн"
+    work_done.append(f"🚗 Виїзд на {distance} км - {travel_cost} грн")
+    
+    # Формуємо текст звіту
+    report_text = f"📋 *Звіт про виконану роботу*\n\n"
+    report_text += f"🔢 *Станція:* {data.get('stNumber')}\n\n"
+    report_text += f"❓ *Проблема:* {data.get('description')}\n\n"
+    report_text += f"✅ *Рішення:* {data.get('solution')}\n\n"
+    report_text += f"📝 *Виконані роботи:*\n"
+    
+    # Додаємо список робіт
+    total_amount = travel_cost  # Починаємо з вартості виїзду
+    for work in work_done:
+        report_text += f"- {work}\n"
+        # Підраховуємо загальну суму робіт (крім виїзду, який вже додали)
+        if work.startswith("🚗"):
+            continue
+        try:
+            price_str = work.split('-')[-1].strip()
+            price = int(price_str.split()[0])
+            total_amount += price
+        except (ValueError, IndexError):
+            continue
+    
+    report_text += f"\n💰 *Загальна сума:* {total_amount} грн"
+    
+    # Додаємо клавіатуру для збереження в базу
+    save_keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Зберегти звіт в базу")],
+            [KeyboardButton(text="Згенерувати звіт")]
+        ],
+        resize_keyboard=True
+    )
+    
+    # Очищуємо стан
+    await state.clear()
+    
+    # Відправляємо звіт
+    await message.answer(report_text, parse_mode="Markdown", reply_markup=save_keyboard)
+    
+    # Якщо є фотографії, відправляємо їх
+    photos = data.get("photos", [])
+    if photos:
+        media_group = []
+        for photo_id in photos:
+            media_group.append(InputMediaPhoto(media=photo_id))
+        await message.answer_media_group(media=media_group) км - {travel_cost} грн"
                      )  # Додаємо у список робіт
 
     # Формуємо перше повідомлення (без робіт, але з фото)

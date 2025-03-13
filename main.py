@@ -5,6 +5,8 @@ from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 from utils.background import keep_alive
 from bot.handlers import router
+from bot.equipment_handlers import equipment_router
+from bot.report_handlers import report_router
 
 # Завантажуємо змінні середовища з .env файлу
 load_dotenv()
@@ -23,8 +25,10 @@ async def main():
     bot = Bot(token=bot_token)
     dp = Dispatcher()
     
-    # Підключаємо маршрутизатор з обробниками повідомлень
+    # Підключаємо маршрутизатори з обробниками повідомлень
     dp.include_router(router)
+    dp.include_router(equipment_router)
+    dp.include_router(report_router)
     
     # Запускаємо бота
     print('Бот запущений!')

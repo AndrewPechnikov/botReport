@@ -1,4 +1,3 @@
-
 from aiogram import F, Router
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto, InputFile, ReplyKeyboardRemove
 from aiogram.filters import CommandStart, Command
@@ -17,7 +16,7 @@ router = Router()
 file_path = "data/НОВИЙ прайс для ІНЖЕНЕРІВ 06.2024.xlsx"
 try:
     df = pd.read_excel(file_path, sheet_name="Лист1")
-    
+
     # Створюємо список варіантів робіт
     job_list = [
         f"{row['Найменування роботи']} - {row['кошторис для інженера']} грн"
@@ -31,6 +30,7 @@ except Exception as e:
     print(f"Помилка при завантаженні прайсу: {e}")
     job_list = []
     job_list_for_button = []
+
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
@@ -178,51 +178,40 @@ async def report_skip_photos(message: Message, state: FSMContext):
     Формує та відправляє готовий звіт
     """
     data = await state.get_data()
-
-    # Отримуємо список виконаних робіт і додаємо вартість виїзду
     work_done = data.get("work_done", [])
-    distance = int(data.get("distance", 0))  # Отримуємо кілометраж
-    travel_cost = distance * 8  # Розраховуємо вартість виїзду
-    work_done.append(f"🚗 Виїзд на {distance} км - {travel_cost} грн")
-    
-    # Формуємо текст звіту
+    distance = int(data.get("distance", 0))
+    travel_cost = distance * 8
+    total_amount = travel_cost
+
     report_text = f"📋 *Звіт про виконану роботу*\n\n"
     report_text += f"🔢 *Станція:* {data.get('stNumber')}\n\n"
     report_text += f"❓ *Проблема:* {data.get('description')}\n\n"
     report_text += f"✅ *Рішення:* {data.get('solution')}\n\n"
-    report_text += f"📝 *Виконані роботи:*\n"
-    
-    # Додаємо список робіт
-    total_amount = travel_cost  # Починаємо з вартості виїзду
+    report_text += "📝 *Виконані роботи:*\n"
+
     for work in work_done:
         report_text += f"- {work}\n"
-        # Підраховуємо загальну суму робіт (крім виїзду, який вже додали)
-        if work.startswith("🚗"):
-            continue
-        try:
-            price_str = work.split('-')[-1].strip()
-            price = int(price_str.split()[0])
-            total_amount += price
-        except (ValueError, IndexError):
-            continue
-    
+        for _, row in df.iterrows():
+            if row["Найменування роботи"] in work:
+                total_amount += row["кошторис для інженера"]
+                break
+
     report_text += f"\n💰 *Загальна сума:* {total_amount} грн"
-    
+
     # Додаємо клавіатуру для збереження в базу
     save_keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Зберегти звіт в базу")],
-            [KeyboardButton(text="Згенерувати звіт")]
-        ],
-        resize_keyboard=True
-    )
-    
+        keyboard=[[KeyboardButton(text="Зберегти звіт в базу")],
+                  [KeyboardButton(text="Згенерувати звіт")]],
+        resize_keyboard=True)
+
     # Очищуємо стан
     await state.clear()
-    
+
     # Відправляємо звіт
-    await message.answer(report_text, parse_mode="Markdown", reply_markup=save_keyboard)
-    
+    await message.answer(report_text,
+                         parse_mode="Markdown",
+                         reply_markup=save_keyboard)
+
     # Якщо є фотографії, відправляємо їх
     photos = data.get("photos", [])
     if photos:

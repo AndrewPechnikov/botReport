@@ -1,29 +1,71 @@
 from http.server import HTTPServer
 from aiohttp import web
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler
-from main import bot, dp, on_startup, on_shutdown
+from aiogram import Bot, Dispatcher
+from aiogram.types import Update
+import json
 
-async def handle_webhook(request):
+# Імпортуємо конфігурацію
+from bot.config import BOT_TOKEN, setup_logging
+
+# Налаштовуємо логування
+logger = setup_logging()
+
+# Ініціалізація бота та диспетчера
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+# Імпортуємо роутери
+from bot.handlers import router as report_router
+from bot.equipment_handlers import equipment_router
+from bot.report_handlers import report_router as save_report_router
+
+# Реєструємо роутери
+dp.include_router(report_router)
+dp.include_router(equipment_router)
+dp.include_router(save_report_router)
+
+async def handler(request):
     """
-    Обробник вебхуків для Vercel
+    Головний обробник вебхуків для Vercel
     """
     try:
-        # Отримуємо дані від Telegram
-        update = await request.json()
+        # Отримуємо тіло запиту
+        body = await request.read()
+        
+        # Логуємо отримання запиту
+        logger.info("Отримано webhook запит")
+        
+        # Перевіряємо наявність даних
+        if not body:
+            logger.error("Отримано порожній запит")
+            return web.Response(status=400, text="Empty request")
+
+        # Конвертуємо bytes в словник
+        update_dict = json.loads(body)
+        
+        # Створюємо об'єкт Update
+        update = Update(**update_dict)
         
         # Обробляємо оновлення
-        await dp.feed_webhook_update(bot, update)
+        await dp.feed_update(bot=bot, update=update)
         
-        return web.Response(status=200)
+        # Повертаємо успішну відповідь
+        return web.Response(status=200, text="OK")
+        
     except Exception as e:
+        # Логуємо помилку
+        logger.error(f"Помилка при обробці webhook: {e}")
         return web.Response(status=500, text=str(e))
 
+# Створюємо застосунок
 app = web.Application()
-app.router.add_post("/api/webhook", handle_webhook)
 
-# Додаємо обробники startup/shutdown
-app.on_startup.append(lambda app: on_startup(bot, str(request.url)))
-app.on_shutdown.append(lambda app: on_shutdown(bot))
+# Додаємо маршрут
+app.router.add_post("/api/webhook", handler)
 
 # Точка входу для Vercel
-handler = app._make_handler() 
+async def handle(request):
+    """
+    Vercel Function Handler
+    """
+    return await handler(request) 

@@ -2,6 +2,8 @@ from http.server import HTTPServer
 from aiogram import Bot, Dispatcher, types
 import json
 from typing import Dict, Any
+from http.client import HTTPResponse
+from urllib import request, parse
 
 # Імпортуємо конфігурацію
 from bot.config import BOT_TOKEN, setup_logging
@@ -48,25 +50,16 @@ def format_response(status_code: int, body: str) -> Dict[str, Any]:
         "body": json.dumps({"message": body})
     }
 
-async def handler(request) -> Dict[str, Any]:
+async def handle_webhook(request_body: dict) -> Dict[str, Any]:
     """
-    Обробник для Vercel Serverless Function
+    Обробник для webhook-запитів
     """
     try:
-        # Перевіряємо метод запиту
-        if request.get("method", "POST") != "POST":
-            return format_response(405, "Method not allowed")
-
-        # Отримуємо тіло запиту
-        body = request.get("body", {})
-        if isinstance(body, str):
-            body = json.loads(body)
-        
         # Логуємо отримання запиту
-        logger.info(f"Отримано webhook запит: {body}")
+        logger.info(f"Отримано webhook запит: {request_body}")
         
         # Обробляємо оновлення
-        success = await process_update(body)
+        success = await process_update(request_body)
         
         if success:
             return format_response(200, "OK")
@@ -75,6 +68,24 @@ async def handler(request) -> Dict[str, Any]:
             
     except Exception as e:
         logger.error(f"Помилка при обробці webhook: {e}")
+        return format_response(500, str(e))
+
+async def handler(request):
+    """
+    Обробник для Vercel
+    """
+    if request.get("method") != "POST":
+        return format_response(405, "Method not allowed")
+
+    try:
+        # Отримуємо тіло запиту
+        body = request.get("body", "{}")
+        if isinstance(body, str):
+            body = json.loads(body)
+            
+        return await handle_webhook(body)
+    except Exception as e:
+        logger.error(f"Помилка при обробці запиту: {e}")
         return format_response(500, str(e))
 
 def main(request):

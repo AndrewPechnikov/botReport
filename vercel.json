@@ -3,7 +3,11 @@
   "builds": [
     {
       "src": "api/webhook.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.9"
+      }
     }
   ],
   "routes": [
@@ -13,12 +17,6 @@
       "methods": ["POST"]
     }
   ],
-  "functions": {
-    "api/webhook.py": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "env": {
     "PYTHONPATH": ".",
     "TZ": "Europe/Kiev"

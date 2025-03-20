@@ -1,46 +1,34 @@
-
-import asyncio
 import os
+import asyncio
 from aiogram import Bot, Dispatcher
+from aiogram.types import Update
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiohttp import web
 from dotenv import load_dotenv
-from utils.background import keep_alive
-from bot.handlers import router
-from bot.equipment_handlers import equipment_router
-from bot.report_handlers import report_router
 
-# Завантажуємо змінні середовища з .env файлу
+# Завантаження змінних середовища
 load_dotenv()
 
-async def main():
-    """
-    Головна асинхронна функція, яка запускає бота
-    """
-    # Отримуємо токен з змінних середовища
-    bot_token = os.environ.get('BOT_TOKEN')
-    if not bot_token:
-        print('Помилка: BOT_TOKEN не налаштований у змінних середовища')
-        return
-        
-    # Створюємо екземпляр бота та диспетчера
-    bot = Bot(token=bot_token)
-    dp = Dispatcher()
-    
-    # Підключаємо маршрутизатори з обробниками повідомлень
-    dp.include_router(router)
-    dp.include_router(equipment_router)
-    dp.include_router(report_router)
-    
-    # Запускаємо бота
-    print('Бот запущений!')
-    await dp.start_polling(bot)
+# Отримання змінних середовища
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_PATH = "/webhook"
 
+# Ініціалізація бота та диспетчера
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
-# Запускаємо фоновий сервер для підтримки бота
-keep_alive()
+# Ініціалізація сервера FastAPI
+def create_app():
+    app = web.Application()
+    SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+    setup_application(app, dp, bot=bot)
+    return app
 
-if __name__ == '__main__':
-    try:
-        # Запускаємо головну функцію
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print('Бот вимкнений!')
+async def on_startup():
+    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
+
+app = create_app()
+
+if __name__ == "__main__":
+    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

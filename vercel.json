@@ -18,7 +18,6 @@
     }
   ],
   "env": {
-    "PYTHONPATH": ".",
-    "TZ": "Europe/Kiev"
+    "PYTHONPATH": "."
   }
 } 

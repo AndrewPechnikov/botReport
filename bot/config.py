@@ -2,6 +2,8 @@ import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+import pytz
+from datetime import datetime
 
 # Завантаження змінних середовища
 load_dotenv()
@@ -10,6 +12,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
+
+# Встановлюємо часовий пояс
+TIMEZONE = pytz.timezone('Europe/Kiev')
 
 # Налаштування логування
 def setup_logging():
@@ -26,6 +31,10 @@ def setup_logging():
     # Створюємо логер для бота
     logger = logging.getLogger("bot")
     return logger
+
+def get_current_time():
+    """Отримати поточний час в київському часовому поясі"""
+    return datetime.now(TIMEZONE)
 
 # Токен бота
 BOT_TOKEN = os.getenv("BOT_TOKEN")

@@ -1,8 +1,7 @@
 from http.server import HTTPServer
-from aiohttp import web
-from aiogram import Bot, Dispatcher
-from aiogram.types import Update
+from aiogram import Bot, Dispatcher, types
 import json
+from typing import Dict, Any
 
 # Імпортуємо конфігурацію
 from bot.config import BOT_TOKEN, setup_logging
@@ -24,48 +23,63 @@ dp.include_router(report_router)
 dp.include_router(equipment_router)
 dp.include_router(save_report_router)
 
-async def handler(request):
+async def process_update(update_data: dict) -> bool:
     """
-    Головний обробник вебхуків для Vercel
+    Обробка оновлення від Telegram
     """
     try:
+        logger.info(f"Обробка оновлення: {update_data}")
+        update = types.Update(**update_data)
+        await dp.feed_update(bot=bot, update=update)
+        return True
+    except Exception as e:
+        logger.error(f"Помилка при обробці оновлення: {e}")
+        return False
+
+def format_response(status_code: int, body: str) -> Dict[str, Any]:
+    """
+    Форматування відповіді для Vercel
+    """
+    return {
+        "statusCode": status_code,
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": json.dumps({"message": body})
+    }
+
+async def handler(request) -> Dict[str, Any]:
+    """
+    Обробник для Vercel Serverless Function
+    """
+    try:
+        # Перевіряємо метод запиту
+        if request.get("method", "POST") != "POST":
+            return format_response(405, "Method not allowed")
+
         # Отримуємо тіло запиту
-        body = await request.read()
+        body = request.get("body", {})
+        if isinstance(body, str):
+            body = json.loads(body)
         
         # Логуємо отримання запиту
-        logger.info("Отримано webhook запит")
-        
-        # Перевіряємо наявність даних
-        if not body:
-            logger.error("Отримано порожній запит")
-            return web.Response(status=400, text="Empty request")
-
-        # Конвертуємо bytes в словник
-        update_dict = json.loads(body)
-        
-        # Створюємо об'єкт Update
-        update = Update(**update_dict)
+        logger.info(f"Отримано webhook запит: {body}")
         
         # Обробляємо оновлення
-        await dp.feed_update(bot=bot, update=update)
+        success = await process_update(body)
         
-        # Повертаємо успішну відповідь
-        return web.Response(status=200, text="OK")
-        
+        if success:
+            return format_response(200, "OK")
+        else:
+            return format_response(500, "Failed to process update")
+            
     except Exception as e:
-        # Логуємо помилку
         logger.error(f"Помилка при обробці webhook: {e}")
-        return web.Response(status=500, text=str(e))
+        return format_response(500, str(e))
 
-# Створюємо застосунок
-app = web.Application()
-
-# Додаємо маршрут
-app.router.add_post("/api/webhook", handler)
-
-# Точка входу для Vercel
-async def handle(request):
+def main(request):
     """
-    Vercel Function Handler
+    Точка входу для Vercel
     """
-    return await handler(request) 
+    import asyncio
+    return asyncio.run(handler(request)) 
